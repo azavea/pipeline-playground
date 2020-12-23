@@ -33,7 +33,7 @@ In other words the same `Nextflow` pipeline can be launched in a different execu
 `Nextflow` allows directly to define the pipeline that consists of multiple steps and more over to define 
 some logic around selecting what steps should be skipped or forced basing on the `workflow` input parameters.
 
-```bash
+```nextflow
 // In this example we used the new Nextflow DSL
 // https://www.nextflow.io/docs/latest/dsl2.html
 nextflow.enable.dsl=2
@@ -84,20 +84,33 @@ workflow {
   params.event = ''
   params.event_type = ''
 
+  // input events channel definition
   event_ch = Channel.of(params.event)
   
-  // describe different workflow modes
+  // describe different workflow behavior 
+  // depending on input parameters
   if(params.event_type == 'activator') {
+    // the output of the activator process is file 
+    // to print it: its content should be loaded an covnerted into strings
     activator(event_ch)
-    activator.out.map(file -> file.text).view()
+      .map(file -> file.text)
+      .view()
   } else if (params.event_type == 'processor') {
     processor(event_ch)
-    processor.out.map(file -> file.text).view()
+    // an alternative to direct processes composition
+    // it is possible to call process.out to get process output
+    // the output of the processor process is file 
+    // to print it: its content should be loaded an covnerted into strings
+    processor
+      .out
+      .map(file -> file.text)
+      .view()
   } else {
-    activator(event_ch)
-    processor_input = activator.out.map(file -> file.text)
-    processor(processor_input)
-    processor.out.map(file -> file.text).view()
+    // the output of the processor process is file 
+    // to print it: its content should be loaded an covnerted into strings
+    processor(activator(event_ch).map(file -> file.text))
+      .map(file -> file.text)
+      .view()
   }
 }
 

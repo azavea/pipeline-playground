@@ -57,21 +57,26 @@ workflow {
   // describe different workflow behavior 
   // depending on input parameters
   if(params.event_type == 'activator') {
-    activator(event_ch)
     // the output of the activator process is file 
     // to print it: its content should be loaded an covnerted into strings
-    activator.out.map(file -> file.text).view()
+    activator(event_ch)
+      .map(file -> file.text)
+      .view()
   } else if (params.event_type == 'processor') {
     processor(event_ch)
+    // an alternative to direct processes composition
+    // it is possible to call process.out to get process output
     // the output of the processor process is file 
     // to print it: its content should be loaded an covnerted into strings
-    processor.out.map(file -> file.text).view()
+    processor
+      .out
+      .map(file -> file.text)
+      .view()
   } else {
-    activator(event_ch)
-    processor_input = activator.out.map(file -> file.text)
-    processor(processor_input)
     // the output of the processor process is file 
     // to print it: its content should be loaded an covnerted into strings
-    processor.out.map(file -> file.text).view()
+    processor(activator(event_ch).map(file -> file.text))
+      .map(file -> file.text)
+      .view()
   }
 }
