@@ -128,8 +128,8 @@ docker.enabled = true
 
 * [Activator Sources](docker/batch/activator.py)
 * [Processor Sources](docker/batch/processor.py)
-* [nextflow.config](docker/nextflow.config)
 * [docker.nf](docker/docker.nf)
+* [nextflow.config](docker/nextflow.config)
 
 ### How to run
 
