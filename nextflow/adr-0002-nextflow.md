@@ -116,6 +116,16 @@ workflow {
 
 ```
 
+The DSL above describes the pipeline itself. `Nextflow` allows to specify extra `nextflow.config` file that configures settings 
+that are common for `Nextflow` processes described via DSL:
+
+```nextflow
+// a default docker container for all processes
+process.container = '513167130603.dkr.ecr.us-east-1.amazonaws.com/nasa-hsi-v2-nextflow:latest'
+// enable docker executor for all underlying processes
+docker.enabled = true
+```
+
 * [Activator Sources](docker/batch/activator.py)
 * [Processor Sources](docker/batch/processor.py)
 * [nextflow.config](docker/nextflow.config)
@@ -177,6 +187,29 @@ Report output example (available as HTML file):
 ### Execution environment
 
 The example above is located in the [docker directory](./docker) and runs locally. Each processor in this case is represented as a separate docker container. To run the same script on `AWS Batch` it is neccesary to add an appropriate `Nextflow` configuration into the [nextflow.config](./docker-aws/nextflow.config) file. All AWS Batch Examples are located in the [docker-aws](./docker-aws) directory.
+
+[nextflow.config](./docker-aws/nextflow.config) example that should be used to launch the pipeline on AWS Batch:
+
+```nextflow
+// enable docker for all underlying processes
+// this setting is not necessary for the AWS Batch executor
+docker.enabled = true
+
+// a default docker container for all processes
+process.container = '513167130603.dkr.ecr.us-east-1.amazonaws.com/nasa-hsi-v2-nextflow:latest'
+// a default process executor
+process.executor = 'awsbatch'
+// AWS Batch queue that would be used by the AWS Batch
+process.queue = 'queueNASAHyperspectral'
+// AWS Region
+aws.region = 'us-east-1'
+
+// NOTE: this setting is only required if the AWS CLI tool is installed in a custom AMI
+// aws.batch.cliPath = '/usr/local/bin/aws'
+
+```
+
+Almost all `Nextflow` examples used `docker` as an execution engine. It requires building a proper docker container to run processes. Checkout `docker` folder that is located in each playground with scripts to build and publish images.
 
 ### Deployment
 

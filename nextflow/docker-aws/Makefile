@@ -28,3 +28,9 @@ nextflow-resume:
 
 nextflow-cleanup: 
 	rm -rf .nextflow* docker.dot* docker.html* work dag.dot* report.html* timeline.html* trace.txt*
+
+docker-build:
+	./docker/ecr-build.sh
+
+docker-publish:
+	./docker/ecr-publish.sh
