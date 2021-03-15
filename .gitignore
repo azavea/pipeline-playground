@@ -32,3 +32,11 @@ plan.txt
 work
 .nextflow.log*
 .html*
+
+# K8s / Kubeflow
+*.py.yaml
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
