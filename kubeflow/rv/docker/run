@@ -1,0 +1,87 @@
+#!/bin/bash
+
+set -e
+
+if [[ -n "$RV_KUBEFLOW_DEBUG" ]]; then
+    set -x
+fi
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
+DOCKER_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+REPO_ROOT="$( cd -P "$( dirname "$DOCKER_DIR" )" && pwd )"
+
+function usage() {
+    echo -n \
+         "Usage: $(basename "$0") <options> <command>
+
+Run a console in a Docker image locally.
+
+Environment variables:
+RV_KUBEFLOW_DATA_DIR (directory for storing data; mounted to /opt/data)
+AWS_PROFILE (optional AWS profile)
+
+Options:
+--aws forwards AWS credentials (sets AWS_PROFILE env var and mounts ~/.aws to /root/.aws)
+--tensorboard maps port 6006
+--name sets the name of the running container
+--jupyter forwards port 8888 and runs Jupyter
+--debug forwards port 3005 for use with remote debugger
+--gpu use nvidia runtime
+
+All arguments after above options are passed to 'docker run'.
+"
+}
+
+IMAGE="rv_kubeflow:latest"
+
+# Parse options using scheme in
+# https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+    key="$1"
+    case $key in
+        --help)
+        usage
+        exit 0
+        shift
+        ;;
+        --aws)
+        AWS="-e AWS_PROFILE=${AWS_PROFILE:-default} -v ${HOME}/.aws:/root/.aws:ro"
+        shift # past argument
+        ;;
+        --gpu)
+        RUNTIME="--runtime=nvidia"
+        shift # past argument
+        ;;
+        --name)
+        shift
+        NAME="--name $1"
+        shift
+        ;;
+        --debug)
+        DEBUG="-p 3011:3000"
+        shift
+        ;;
+        *)    # unknown option
+        POSITIONAL+=("$1") # save it in an array for later
+        shift # past argument
+        ;;
+    esac
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
+if [ -z "${CMD}" ]
+then
+    CMD=(${@:1})
+fi
+
+if [ "${BASH_SOURCE[0]}" = "${0}" ]
+then
+    docker run ${RUNTIME} ${NAME} --rm -it \
+        -v ${REPO_ROOT}/rv_kubeflow/:/opt/src/rv_kubeflow \
+        -v $RV_KUBEFLOW_DATA_DIR:/opt/data \
+        ${AWS} ${DEBUG} \
+        ${IMAGE} "${CMD[@]}"
+fi
