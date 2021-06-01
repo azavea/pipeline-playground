@@ -1,0 +1,154 @@
+# This example demonstrates the ability to pass artifacts
+# from one step to the next.
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: workflow-
+spec:
+  entrypoint: workflow-template
+  parallelism: 2
+  arguments:
+    parameters:
+    - name: workflow-input
+      value: |
+        [
+          { 
+            "id": "1",
+            "event": {"msg": "activator run 1"} 
+          },
+          { 
+            "id": "2",
+            "event": {"msg": "activator run 2"} 
+          }
+        ]
+
+  templates:
+  - name: workflow-template
+    dag:
+      tasks:
+      - name: activator
+        template: activator-template
+        arguments:
+          parameters:
+          - name: activator-input
+            value: "{{item.event}}"
+          - name: workflow-name
+            value: "{{workflow.name}}"
+          artifacts:
+            - name: file
+              s3:
+                key: "activator/{{item.id}}"
+        withParam: "{{workflow.parameters.workflow-input}}"
+      
+      - name: list-activator-outputs
+        dependencies: [activator]
+        template: list-activator-outputs-template
+        arguments:
+          parameters:
+          - name: bucket
+            value: workflows
+          - name: key
+            value: "{{workflow.name}}"
+      
+      - name: processor
+        dependencies: [activator, list-activator-outputs]
+        template: processor-template
+        arguments:
+          parameters:
+          - name: workflow-name
+            value: "{{workflow.name}}"
+          artifacts:
+          - name: processor-input
+            s3:
+              endpoint: minio:9000
+              insecure: true
+              bucket: workflows
+              key: "{{item}}"
+              accessKeySecret:
+                name: my-minio-cred
+                key: accesskey
+              secretKeySecret:
+                name: my-minio-cred
+                key: secretkey
+        withParam: "{{tasks.list-activator-outputs.outputs.result}}"
+
+  - name: list-activator-outputs-template
+    inputs:
+      parameters:
+      - name: bucket
+      - name: key
+    data:
+      source:
+        artifactPaths:
+          name: activator-outputs
+          s3:
+            endpoint: minio:9000
+            insecure: true 
+            bucket: "{{inputs.parameters.bucket}}"
+            key: "{{inputs.parameters.key}}"
+            accessKeySecret:
+              name: my-minio-cred
+              key: accesskey
+            secretKeySecret:
+              name: my-minio-cred
+              key: secretkey
+      transformation:
+          - expression: "filter(data, {# endsWith \"output.tgz\"})"
+
+  - name: activator-template
+    inputs:
+      parameters:
+      - name: activator-input
+      - name: workflow-name
+      - name: pod-name
+        value: "{{pod.name}}"
+    container:
+      image: nasa-hsi-argo
+      imagePullPolicy: Never
+      command: [python, /workdir/activator.py]
+      args: ["{{inputs.parameters.activator-input}}"]
+    outputs:
+      artifacts:
+      - name: activator-output
+        path: /workdir/activator_event.json
+        s3:
+          endpoint: minio:9000
+          insecure: true 
+          bucket: workflows
+          key: "{{inputs.parameters.workflow-name}}/{{inputs.parameters.pod-name}}/activator-output.tgz"
+          accessKeySecret:
+            name: my-minio-cred
+            key: accesskey
+          secretKeySecret:
+            name: my-minio-cred
+            key: secretkey
+
+  - name: processor-template
+    inputs:
+      parameters:
+      - name: workflow-name
+      - name: pod-name
+        value: "{{pod.name}}"
+      artifacts:
+      - name: processor-input
+        path: /tmp/processor_event.json
+    container:
+      image: nasa-hsi-argo
+      imagePullPolicy: Never
+      command: [python, /workdir/processor.py]
+      args: ["{{inputs.artifacts.processor-input.path}}"]
+    outputs:
+      artifacts:
+      - name: processor-output
+        path: /workdir/processor_event.json
+        s3:
+          endpoint: minio:9000
+          insecure: true 
+          bucket: workflows
+          key: "{{inputs.parameters.workflow-name}}/{{inputs.parameters.pod-name}}/processor-output.tgz"
+          accessKeySecret:
+            name: my-minio-cred
+            key: accesskey
+          secretKeySecret:
+            name: my-minio-cred
+            key: secretkey

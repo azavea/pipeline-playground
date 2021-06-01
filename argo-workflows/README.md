@@ -1,13 +1,17 @@
 ### Argo Workflows
 
+<img width="800" alt="Argo Workflows" src="https://argoproj.github.io/argo-workflows/assets/argo.png">
+
+In all examples we use Argo Workflows 3.1.0, since we are interested in some of new argo workflows features, see https://blog.argoproj.io/argo-workflows-v3-1-is-coming-1fb1c1091324
+
 ## Argo CLI instructions
 
-For details see: https://github.com/argoproj/argo-workflows/releases/tag/v3.0.5
+For details see: https://github.com/argoproj/argo-workflows/releases/tag/v3.1.0-rc11
 
 ### Mac
 
 ```bash
-$ curl -sLO https://github.com/argoproj/argo/releases/download/v3.0.4/argo-darwin-amd64.gz
+$ curl -sLO https://github.com/argoproj/argo/releases/download/v3.1.0-rc11/argo-darwin-amd64.gz
 $ gunzip argo-darwin-amd64.gz
 $ chmod +x argo-darwin-amd64
 $ mv ./argo-darwin-amd64 /usr/local/bin/argo
@@ -17,7 +21,7 @@ $ argo version
 ### Linux
 
 ```bash
-$ curl -sLO https://github.com/argoproj/argo/releases/download/v3.0.4/argo-linux-amd64.gz
+$ curl -sLO https://github.com/argoproj/argo/releases/download/v3.1.0-rc11/argo-darwin-amd64.gz
 $ gunzip argo-linux-amd64.gz
 $ chmod +x argo-linux-amd64
 $ mv ./argo-linux-amd64 /usr/local/bin/argo
@@ -32,7 +36,9 @@ $ minikube start
 
 # lunch argo
 $ kubectl create ns argo
-$ kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflows/stable/manifests/quick-start-postgres.yaml
+# install 3.1.0-RC11
+$ kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflows/v3.1.0-rc11/manifests/quick-start-postgres.yaml
+# $ kubectl delete -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflows/v3.1.0-rc11/manifests/quick-start-postgres.yaml
 # On GKE, you may need to grant your account the ability to create new clusterroles
 # kubectl create clusterrolebinding YOURNAME-cluster-admin-binding --clusterrole=cluster-admin --user=YOUREMAIL@gmail.com
 # port forwarding for the local development
@@ -54,3 +60,28 @@ Argo Workflows support https only, so add your local certificate into trusted to
 
 <img width="300" alt="MacOS Keychain Access" src="./img/keychain.png">
 
+### Accessing the provided Minio
+
+```bash
+# info 
+$ kubectl get service minio --namespace=argo
+# port forward, it will generate a URI and a tunnel
+$ minikube service --url minio --namespace=argo
+## AccessKey: kubectl get secret my-minio-cred -o jsonpath='{.data.accesskey}' | base64 --decode
+## SecretKey: kubectl get secret my-minio-cred -o jsonpath='{.data.secretkey}' | base64 --decode
+```
+
+### Configuring Minio via Helm (this step is not neccesary)
+
+```bash
+$ brew install helm # mac, helm 3.x
+$ helm repo add minio https://helm.min.io/ # official minio Helm charts
+$ helm repo update
+$ helm install argo-artifacts minio/minio --set service.type=LoadBalancer --set fullnameOverride=argo-artifacts --namespace=argo
+# info 
+$ kubectl get service argo-artifacts --namespace=argo
+# port forward, it will generate a URI and a tunnel
+$ minikube service --url argo-artifacts --namespace=argo
+## AccessKey: kubectl get secret argo-artifacts -o jsonpath='{.data.accesskey}' | base64 --decode
+## SecretKey: kubectl get secret argo-artifacts -o jsonpath='{.data.secretkey}' | base64 --decode
+```
