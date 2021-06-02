@@ -1,8 +1,9 @@
 ### Argo Workflows
 
-```bash
-$ argo submit -n argo workflow.yaml -p 'workflow-input={"msg": "workflow run"}' --watch
-$ argo submit -n argo workflow-minio.yaml --watch
-$ argo submit -n argo workflow-minio-dag.yaml --watch
-```
+To run workflows:
 
+```bash
+$ make docker-build
+$ make argo-run
+$ make argo-run-par
+```

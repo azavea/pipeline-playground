@@ -1,6 +1,6 @@
 ### Argo Workflows
 
-<img width="800" alt="Argo Workflows" src="https://argoproj.github.io/argo-workflows/assets/argo.png">
+![Argo Workflows](https://argoproj.github.io/argo-workflows/assets/argo.png)
 
 In all examples we use Argo Workflows 3.1.0, since we are interested in some of new argo workflows features, see https://blog.argoproj.io/argo-workflows-v3-1-is-coming-1fb1c1091324
 
@@ -28,6 +28,8 @@ $ mv ./argo-linux-amd64 /usr/local/bin/argo
 $ argo version
 ```
 
+## Argo Workflows deploy on a local K8S cluster
+
 This is the summary of the official [Argo Workflows Quick Start](https://argoproj.github.io/argo-workflows/quick-start/).
 
 ```bash
@@ -53,7 +55,7 @@ $ argo logs -n argo @latest
 
 WebUI access here: https://127.0.0.1:2746/
 
-<img width="800" alt="WebUI" src="./img/workflows.png">
+<img width="1000" alt="WebUI" src="./img/workflows.png">
 
 #### !Warning
 Argo Workflows support https only, so add your local certificate into trusted to make the endpoint work:
