@@ -1,0 +1,102 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: workflow-
+spec:
+  entrypoint: workflow-template
+  arguments:
+    parameters:
+    - name: workflow-input
+      value: |
+        {"msg": "activator run"}
+
+  templates:
+  - name: workflow-template
+    steps:
+    - - name: activator
+        template: activator-template
+        arguments:
+          parameters:
+          - name: activator-input
+            value: "{{workflow.parameters.workflow-input}}"
+        
+    - - name: processor
+        template: processor-template
+        arguments:
+          artifacts:
+          - name: processor-input
+            from: "{{steps.activator.outputs.artifacts.activator-output}}"
+
+  - name: activator-template
+    inputs:
+      parameters:
+      - name: activator-input
+    container:
+      image: nasa-hsi-argo
+      imagePullPolicy: Never
+      command: [python, /workdir/activator.py]
+      args: ["{{inputs.parameters.activator-input}}"]
+    outputs:
+      artifacts:
+      - name: activator-output
+        path: /workdir/activator_event.json
+        s3:
+          endpoint: minio:9000
+          insecure: true 
+          bucket: workflows
+          # NOTE that, by default, all output artifacts are automatically tarred and
+          # gzipped before saving. So as a best practice, .tgz or .tar.gz
+          # should be incorporated into the key name so the resulting file
+          # has an accurate file extension.
+          key: activator/output.tgz
+          accessKeySecret:
+            name: my-minio-cred
+            key: accesskey
+          secretKeySecret:
+            name: my-minio-cred
+            key: secretkey
+
+  - name: processor-template
+    inputs:
+      artifacts:
+      - name: processor-input
+        path: /tmp/processor_event.json
+        s3:
+          endpoint: minio:9000
+          insecure: true 
+          bucket: workflows
+          # NOTE that, by default, all output artifacts are automatically tarred and
+          # gzipped before saving. So as a best practice, .tgz or .tar.gz
+          # should be incorporated into the key name so the resulting file
+          # has an accurate file extension.
+          key: activator/output.tgz
+          accessKeySecret:
+            name: my-minio-cred
+            key: accesskey
+          secretKeySecret:
+            name: my-minio-cred
+            key: secretkey
+    container:
+      image: nasa-hsi-argo
+      imagePullPolicy: Never
+      command: [python, /workdir/processor.py]
+      args: ["{{inputs.artifacts.processor-input.path}}"]
+    outputs:
+      artifacts:
+      - name: processor-output
+        path: /workdir/processor_event.json
+        s3:
+          endpoint: minio:9000
+          insecure: true 
+          bucket: workflows
+          # NOTE that, by default, all output artifacts are automatically tarred and
+          # gzipped before saving. So as a best practice, .tgz or .tar.gz
+          # should be incorporated into the key name so the resulting file
+          # has an accurate file extension.
+          key: processor/output.tgz
+          accessKeySecret:
+            name: my-minio-cred
+            key: accesskey
+          secretKeySecret:
+            name: my-minio-cred
+            key: secretkey
