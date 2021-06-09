@@ -5,6 +5,7 @@ This repository is a collection of playgrounds of various pipeline and workflow 
 
 ### Contents
 
+- [Argo Workflows Playground](./argo-workflows)
 - [Kubeflow Raster Vision Playground](./kubeflow/rv)
 - [Nextflow Playground](./nextflow)
 - [AWS Step functions Playground](./step-functions)
